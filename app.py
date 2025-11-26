@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'rahasia_donk'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-API_KEY = "MASUKKAN_API_KEY_OPENWEATHER_DISINI"
+API_KEY = "f437ef3ab68d2f3b2cf1d916f89d2448"
 CITY = "Pontianak" # Ganti dengan kotamu
 
 def get_weather_forecast():
