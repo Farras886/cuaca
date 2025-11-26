@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Cek Cuaca Realtime</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; text-align: center; }
+        .result { margin-top: 20px; padding: 20px; border: 1px solid #ddd; display: none; }
+        .alert { color: red; font-weight: bold; }
+        .safe { color: green; font-weight: bold; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <h1>Rencana Keluar Rumah? 🌤️</h1>
+    <p>Cek dulu cuacanya biar gak kehujanan!</p>
+
+    <label>Pilih Tanggal:</label>
+    <input type="date" id="tanggal">
+    
+    <br><br>
+    
+    <label>Pilih Jam (Per 3 Jam):</label>
+    <select id="jam">
+        <option value="09">09:00</option>
+        <option value="12">12:00</option>
+        <option value="15">15:00</option>
+        <option value="18">18:00</option>
+        <option value="21">21:00</option>
+    </select>
+
+    <br><br>
+    <button onclick="cekCuaca()">Cek Sekarang</button>
+
+    <div id="hasil" class="result">
+        <h3>Hasil Prediksi:</h3>
+        <p id="teks_saran"></p>
+    </div>
+
+    <script>
+        // Koneksi ke WebSocket Server
+        const socket = io();
+
+        function cekCuaca() {
+            const tgl = document.getElementById('tanggal').value;
+            const jam = document.getElementById('jam').value;
+            
+            if(!tgl) { alert("Pilih tanggal dulu!"); return; }
+
+            // Kirim data ke server (EMIT)
+            socket.emit('cek_jadwal', { 'tanggal': tgl, 'jam': jam });
+        }
+
+        // Menerima balasan dari server (ON)
+        socket.on('hasil_prediksi', function(data) {
+            const box = document.getElementById('hasil');
+            const teks = document.getElementById('teks_saran');
+            
+            box.style.display = 'block';
+            teks.innerHTML = data.saran;
+            
+            // Ubah warna text berdasarkan isi saran
+            if(data.saran.includes("⚠️")) {
+                teks.className = "alert";
+            } else {
+                teks.className = "safe";
+            }
+        });
+    </script>
+</body>
+</html>
