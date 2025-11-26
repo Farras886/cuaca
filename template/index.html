@@ -2,25 +2,30 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Cek Cuaca Realtime</title>
+    <title>Dashboard Cuaca & Grafik</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; text-align: center; }
-        .result { margin-top: 20px; padding: 20px; border: 1px solid #ddd; display: none; }
-        .alert { color: red; font-weight: bold; }
-        .safe { color: green; font-weight: bold; }
+        body { font-family: sans-serif; max-width: 700px; margin: 2rem auto; text-align: center; }
+        .result { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; display: none; }
+        .alert { color: #d9534f; font-weight: bold; }
+        .safe { color: #5cb85c; font-weight: bold; }
+        
+        /* Style untuk Grafik */
+        .chart-container {
+            margin-top: 30px;
+            position: relative;
+            height: 300px; /* Tinggi grafik */
+            width: 100%;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Rencana Keluar Rumah? 🌤️</h1>
-    <p>Cek dulu cuacanya biar gak kehujanan!</p>
+    <h1>Project Cuaca & Grafik 📊</h1>
 
     <label>Pilih Tanggal:</label>
     <input type="date" id="tanggal">
-    
-    <br><br>
-    
-    <label>Pilih Jam (Per 3 Jam):</label>
+    <label>Jam:</label>
     <select id="jam">
         <option value="09">09:00</option>
         <option value="12">12:00</option>
@@ -28,43 +33,78 @@
         <option value="18">18:00</option>
         <option value="21">21:00</option>
     </select>
-
-    <br><br>
-    <button onclick="cekCuaca()">Cek Sekarang</button>
+    <button onclick="cekCuaca()">Analisa Cuaca</button>
 
     <div id="hasil" class="result">
-        <h3>Hasil Prediksi:</h3>
+        <h3>Hasil Analisa:</h3>
         <p id="teks_saran"></p>
+        <hr>
+        
+        <h4>Rata-rata Suhu 5 Hari: <span id="nilai_rata_rata"></span>°C</h4>
+        
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
     </div>
 
     <script>
-        // Koneksi ke WebSocket Server
         const socket = io();
+        let weatherChart = null; // Variabel global untuk menyimpan chart
 
         function cekCuaca() {
             const tgl = document.getElementById('tanggal').value;
             const jam = document.getElementById('jam').value;
-            
             if(!tgl) { alert("Pilih tanggal dulu!"); return; }
-
-            // Kirim data ke server (EMIT)
             socket.emit('cek_jadwal', { 'tanggal': tgl, 'jam': jam });
         }
 
-        // Menerima balasan dari server (ON)
         socket.on('hasil_prediksi', function(data) {
+            // 1. Tampilkan Saran Text
             const box = document.getElementById('hasil');
             const teks = document.getElementById('teks_saran');
-            
+            const rataRata = document.getElementById('nilai_rata_rata');
+
             box.style.display = 'block';
             teks.innerHTML = data.saran;
+            teks.className = data.saran.includes("⚠️") ? "alert" : "safe";
             
-            // Ubah warna text berdasarkan isi saran
-            if(data.saran.includes("⚠️")) {
-                teks.className = "alert";
-            } else {
-                teks.className = "safe";
+            // 2. Tampilkan Rata-rata
+            rataRata.innerText = data.rata_rata;
+
+            // 3. GAMBAR GRAFIK
+            const ctx = document.getElementById('myChart').getContext('2d');
+
+            // Hapus chart lama jika ada (biar gak numpuk saat diklik berkali-kali)
+            if (weatherChart) {
+                weatherChart.destroy();
             }
+
+            // Buat Chart Baru
+            weatherChart = new Chart(ctx, {
+                type: 'line', // Jenis grafik: Garis
+                data: {
+                    labels: data.grafik_label, // Label Sumbu X (Tanggal)
+                    datasets: [{
+                        label: 'Suhu (°C)',
+                        data: data.grafik_data, // Data Sumbu Y (Suhu)
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.3, // Biar garisnya agak melengkung
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false, // Biar grafik fokus di angka suhu (misal 25-35)
+                            title: { display: true, text: 'Suhu Celcius' }
+                        }
+                    }
+                }
+            });
         });
     </script>
 </body>
